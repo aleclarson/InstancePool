@@ -3,42 +3,41 @@ emptyFunction = require "emptyFunction"
 assertType = require "assertType"
 Type = require "Type"
 
-InstancePool = ->
+InstancePool = do ->
 
   type = Type "InstancePool"
 
   type.defineOptions
-    minCount: Number.withDefault 0
-    maxCount: Number.withDefault Infinity
-    destructor: Function.withDefault emptyFunction
+    size: Number.withDefault Infinity
+    onRetain: Function.withDefault emptyFunction
+    onRelease: Function.withDefault emptyFunction
 
   type.defineValues (options) ->
 
-    # The minimum length of `_instances`
-    _minCount: options.minCount
+    # The maximum size of `_pool`
+    _size: options.size
 
-    # The maximum length of `_instances`
-    _maxCount: options.maxCount
+    # Reuses an instance from the pool, applying an `options` object
+    _onRetain: options.onRetain
 
-    # Performs clean-up before old instances are added back into `_instances`
-    _destructor: options.destructor
+    # Cleans an instance that will be reused
+    _onRelease: options.onRelease
 
-    # The array of allocated instances not being used
+    # The array of available instances
     _instances: []
 
   type.defineMethods
 
-    allocate: (constructor, options) ->
-      if length = @_instances.length
+    retain: (constructor, options) ->
+      if count = @_instances.length
         instance = @_instances.pop()
-        if length <= @_minCount
-          instance = constructor options
-          @_instances.push instance
+        @_onRetain.call instance, options
         return instance
+      return constructor options
 
-    release: (instance, args) ->
-      if @_instances.length < @_maxCount
-        @_destructor.apply instance, args
+    release: (instance) ->
+      if @_instances.length < @_size
+        @_onRelease.call instance
         @_instances.push instance
       return
 
@@ -48,19 +47,19 @@ module.exports = (type, config) ->
   assertType config, Object
 
   instancePool = InstancePool
-    minCount: config.minCount
-    maxCount: config.maxCount
-    destructor: config.destructor
+    size: config.size
+    onRetain: config.onRetain
+    onRelease: config.onRelease
 
-  assertType config.constructor, Function.Maybe
-  unless constructor = config.constructor
-    type.didBuild (type) ->
-      constructor = type
+  assertType config.createInstance, Function.Maybe
+  unless constructor = config.createInstance
+    type.didBuild (createInstance) ->
+      constructor = createInstance
 
   type.defineMethods
     release: ->
-      instancePool.release this, arguments
+      instancePool.release this
 
   type.defineStatics
-    allocate: (options) ->
-      instancePool.allocate constructor, options
+    retain: (options = {}) ->
+      instancePool.retain constructor, options
