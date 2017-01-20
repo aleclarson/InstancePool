@@ -1,0 +1,10 @@
+{
+  "name": "InstancePool",
+  "version": "1.0.0",
+  "main": "js/InstancePool",
+  "dependencies": {
+    "Type": "aleclarson/Type#2.1.0",
+    "assertType": "aleclarson/assertType#2.0.1",
+    "emptyFunction": "aleclarson/emptyFunction#1.0.0"
+  }
+}
