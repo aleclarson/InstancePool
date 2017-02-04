@@ -28,10 +28,17 @@ InstancePool = do ->
 
   type = Type "InstancePool"
 
-  type.defineOptions
-    size: Number.withDefault Infinity
-    onRetain: Function.withDefault emptyFunction
-    onRelease: Function.withDefault emptyFunction
+  type.defineArgs ->
+
+    types:
+      size: Number
+      onRetain: Function
+      onRelease: Function
+
+    defaults:
+      size: Infinity
+      onRetain: emptyFunction
+      onRelease: emptyFunction
 
   type.defineValues (options) ->
 
